@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <fstream>
+#include "tools.h"
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -24,12 +26,42 @@ public:
 
   ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
   VectorXd x_;
-
+  // VectorXd hx_;
   ///* state covariance matrix
   MatrixXd P_;
 
+  ///* process covariance matrix
+  MatrixXd Q_;
+
+  ///* state transition matrix
+  MatrixXd F_;
+
+  ///* sigma point matrix
+  MatrixXd Xsig_;
+
+  ///* augmented sigma point matrix
+  MatrixXd Xsig_aug_;
+
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
+
+  ///* measurement data
+  VectorXd z_;
+
+  ///* predicted measurement data
+  VectorXd z_pred_;
+
+  ///* the measurement corresponding to sigma points
+  MatrixXd Zsig_;
+
+  ///* predicted measurement covariance
+  MatrixXd S_;
+
+  ///* Radar measurement noise
+  MatrixXd R_radar_;
+
+  ///* Lidar measurement noise
+  MatrixXd R_lidar_;
 
   ///* time when the state is true, in us
   long long time_us_;
@@ -59,14 +91,34 @@ public:
   VectorXd weights_;
 
   ///* State dimension
-  int n_x_;
+  const n_x_;
 
   ///* Augmented state dimension
-  int n_aug_;
+  const n_aug_;
+
+  /// Number of sigma points
+  int n_sig_;
 
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* The current NIS for radar
+  double NIS_radar_;
+
+  ///* The current NIS for LIDAR
+  double NIS_lidar_;
+
+  ///* previous timestamp
+  long previous_timestamp_;
+
+  ///# Step count
+  int step_;
+
+  ///* small value limit
+//  double p_x_min_;
+//  double p_y_min_;
+  const p_x_min_;
+  const p_y_min_;
 
   /**
    * Constructor
@@ -102,6 +154,42 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
-};
 
+   /**
+   * Updates the state and the state covariance matrix using a radar measurement
+   * @param meas_package The measurement at k+1
+   */
+  void AugmentSigmaPoints();
+
+  /**
+  * Generate the augmented sigma points
+  */
+  void PredictSigmaPoints(double delta_t);
+
+  /**
+  * predict the sigma points in the next time step
+  * @param delta_t The time step
+  */
+  void PredictMeanAndCovariance();
+
+  /**
+  * predict the mean and covariance
+  */
+  void PredictRadarMeasurement();
+
+  /**
+  * measurement function for Radar
+  */
+  void PredictLidarMeasurement();
+
+  /**
+  * measurement function for Lidar
+  */
+
+  void UpdateState(int n_z, bool is_radar);
+
+  /**
+  * UKF Update
+  */
+};
 #endif /* UKF_H */
