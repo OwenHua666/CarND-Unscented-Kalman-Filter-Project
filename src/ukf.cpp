@@ -41,7 +41,7 @@ UKF::UKF() {
   MatrixXd Xsig_ = MatrixXd(n_x_, 2 * n_x_ + 1);
 
   // Create augmented sigma point matrix
-  MatrixXd Xsig_aug_ = MatrixXd(n_aug_, n_sig_)
+  MatrixXd Xsig_aug_ = MatrixXd(n_aug_, n_sig_);
 
   // Predicted sigma points
   Xsig_pred_ = MatrixXd(n_x_, n_sig_);
@@ -81,7 +81,7 @@ UKF::UKF() {
               0, std_laspy_*std_laspy_;
 
   // Set the weights for all sigma points
-  weights = VectorXd(n_sig_);
+  weights_ = VectorXd::Zero(n_sig_);
   double weight_0 = lambda_/(lambda_+n_aug_);
   weights_(0) = weight_0;
   for (int i=1; i<n_sig_; i++){
@@ -116,8 +116,14 @@ UKF::~UKF() {}
 // Angle Normalization
 static double SNormalizeAngle(double phi)
 {
-    while (phi > M_PI){phi -= 2.*M_PI};
-    while (phi < -M_PI){phi += 2.*M_PI};
+    while (phi > M_PI){
+            phi -= 2.*M_PI;
+            //cout<<"Here"<<phi<<endl;
+    }
+    while (phi < -M_PI){
+            phi += 2.*M_PI;
+            //cout<<"Here"<<phi<<endl;
+    }
 
     return phi;
 }
@@ -151,9 +157,9 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 //        double rho = meas_package.raw_measurements_[0];
 //        double phi = meas_package.raw_measurements_[1];
 //        double rhodot = meas_package.raw_measurements_[2];
-        const rho = meas_package.raw_measurements_[0];
-        const phi = meas_package.raw_measurements_[1];
-        const rhodot = meas_package.raw_measurements_[2];
+        const double rho = meas_package.raw_measurements_[0];
+        const double phi = meas_package.raw_measurements_[1];
+        const double rhodot = meas_package.raw_measurements_[2];
         px = rho*cos(phi);
         py = rho*sin(phi);
         vx = rhodot*cos(phi);
@@ -163,7 +169,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
         cout << "init lidar"<<endl;
 
         px = meas_package.raw_measurements_[0];
-        py = MeasurementPackage.raw_measurements_[1];
+        py = meas_package.raw_measurements_[1];
         vx = 0;
         vy = 0;
     }
@@ -194,7 +200,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   cout << "Start Prediction" << endl;
   step_ += 1;
   cout << "Step: "<< step_ << endl;
-  const dt = (meas_package.timestamp_ - previous_timestamp_) / 1000000.0;
+  const double dt = (meas_package.timestamp_ - previous_timestamp_) / 1000000.0;
   cout << "dt: " << dt << endl;
   previous_timestamp_ = meas_package.timestamp_;
 
@@ -248,11 +254,11 @@ void UKF::AugmentSigmaPoints()
     MatrixXd L = P_aug.llt().matrixL();
 
     // Augmented sigma points
-    Xsig_aug_ = MatrixXd(n_aug_, n_sig_);
+    Xsig_aug_ = MatrixXd::Zero(n_aug_, n_sig_);
     Xsig_aug_.col(0) = x_aug;
     for (int i=0; i < n_aug_; i++){
-        Xsig_aug_.col(i+1) = x_aug + sqrt(lambda + n_aug_) * L.col(i);
-        Xsig_aug_.col(i+1+n_aug_) = x_aug - sqrt(lambda + n_aug_) * L.col(i);
+        Xsig_aug_.col(i+1) = x_aug + sqrt(lambda_ + n_aug_) * L.col(i);
+        Xsig_aug_.col(i+1+n_aug_) = x_aug - sqrt(lambda_ + n_aug_) * L.col(i);
     }
 }
 
@@ -277,8 +283,8 @@ void UKF::PredictSigmaPoints(double delta_t)
 
         // avoid to be divided by zero
         if (fabs(yawd) > 0.001) {
-            px_p = p_x + v/yawd * (sin(yaw+yawd(delta_t)-sin(yaw)));
-            py_p = p_y + v/yawd * (cos(yaw) - cos(yea+yawd*delta_t));
+            px_p = p_x + v/yawd * (sin(yaw+yawd*delta_t)-sin(yaw));
+            py_p = p_y + v/yawd * (cos(yaw) - cos(yaw+yawd*delta_t));
         } else {
           px_p = p_x + v*delta_t*cos(yaw);
           py_p = p_y + v*delta_t*sin(yaw);
@@ -296,7 +302,7 @@ void UKF::PredictSigmaPoints(double delta_t)
         yaw_p = yaw_p + 0.5*nu_yawdd*delta_t*delta_t;
         yawd_p = yawd_p + nu_yawdd*delta_t;
 
-        //Update the predicted sigma point 
+        //Update the predicted sigma point
         Xsig_pred_(0,i) = px_p;
         Xsig_pred_(1,i) = py_p;
         Xsig_pred_(2,i) = v_p;
@@ -323,13 +329,17 @@ void UKF::PredictMeanAndCovariance(){
 
   for (int i = 0; i < n_sig_; i++){
 
-    VectorXd x_diff = Xsig_pred_.col(i) - Xsig_pred_.col(0);
+    VectorXd x_diff = Xsig_pred_.col(i) - x;
 
     x_diff(3) = SNormalizeAngle(x_diff(3));
+    P = P + weights_(i) * x_diff * x_diff.transpose() ;
   }
 
   x_ = x;
   P_ = P;
+  //cout<<x<<endl;
+  //cout<<"......"<<endl;
+  //cout<<P<< endl;
 }
 /**
  * Predicts sigma points, the state, and the state covariance matrix.
@@ -353,7 +363,7 @@ void UKF::PredictRadarMeasurement(){
   int n_z = 3;
 
   // Matrix for sigma points in measurement space
-  Zsig_ = MatrixXd(n_z, n_sig_);
+  Zsig_ = MatrixXd::Zero(n_z, n_sig_);
 
   // Transform sigma points into measurement space
   for (int i = 0; i <n_sig_; i++){
@@ -368,16 +378,14 @@ void UKF::PredictRadarMeasurement(){
     double v2 = sin(yaw) * v;
 
     // Measurement model
-    if (fabs(p_x) > p_x_min_ && fabs(p_y) > p_y_min_){
+    if (fabs(p_x) > p_x_min_ || fabs(p_y) > p_y_min_){
       Zsig_(0,i) = sqrt(p_x*p_x + p_y*p_y);
       Zsig_(1,i) = atan2(p_y, p_x);
       Zsig_(2,i) = (p_x*v1+p_y*v2) / sqrt(p_x*p_x + p_y*p_y);
     } else{
-      p_x = p_x_min_;
-      p_y = p_y_min_;
-      Zsig_(0,i) = sqrt(p_x*p_x + p_y*p_y);
-      Zsig_(1,i) = atan2(p_y, p_x);
-      Zsig_(2,i) = (p_x*v1+p_y*v2) / sqrt(p_x*p_x + p_y*p_y); 
+      Zsig_(0,i) = 0;
+      Zsig_(1,i) = 0;
+      Zsig_(2,i) = 0;
     }
 
   }
@@ -411,7 +419,7 @@ void UKF::PredictLidarMeasurement(){
   int n_z = 2;
 
   // Matrix for sigma points in measurement space
-  Zsig_ = MatrixXd(n_z, n_sig_);
+  Zsig_ = MatrixXd::Zero(n_z, n_sig_);
 
   // Transform sigma points into measurement space
   for (int i = 0; i <n_sig_; i++){
@@ -424,7 +432,7 @@ void UKF::PredictLidarMeasurement(){
     if (fabs(p_x) < p_x_min_ || fabs(p_y) < p_y_min_){
       Zsig_(0,i) = p_x_min_;
       Zsig_(1,i) = p_y_min_;
- 
+
     } else{
       Zsig_(0,i) = p_x;
       Zsig_(1,i) = p_y;
@@ -459,7 +467,7 @@ void UKF::UpdateState(int n_z, bool is_radar){
 
   Tc.fill(0.0);
   for (int i = 0; i < n_sig_; i++){
-    
+
     VectorXd z_diff = Zsig_.col(i) - z_pred_;
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
 
@@ -485,7 +493,7 @@ void UKF::UpdateState(int n_z, bool is_radar){
   P_ = P_ - K*S_*K.transpose();
 
   //Calculate NIS
-  double NIS = z_diff.transpose() * S_inverse() * z_diff;
+  double NIS = z_diff.transpose() * S_.inverse() * z_diff;
   if (is_radar == true) {
     NIS_radar_ = NIS;
   } else {

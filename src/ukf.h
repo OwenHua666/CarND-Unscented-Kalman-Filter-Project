@@ -91,10 +91,10 @@ public:
   VectorXd weights_;
 
   ///* State dimension
-  const n_x_;
+  int n_x_;
 
   ///* Augmented state dimension
-  const n_aug_;
+  int n_aug_;
 
   /// Number of sigma points
   int n_sig_;
@@ -117,8 +117,8 @@ public:
   ///* small value limit
 //  double p_x_min_;
 //  double p_y_min_;
-  const p_x_min_;
-  const p_y_min_;
+  double p_x_min_;
+  double p_y_min_;
 
   /**
    * Constructor
