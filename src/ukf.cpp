@@ -240,9 +240,8 @@ void UKF::AugmentSigmaPoints()
     MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
 
     // Mean state
+    x_aug.fill(0.0);
     x_aug.head(5) = x_;
-    x_aug(5) = 0;
-    x_aug(6) = 0;
 
     // State covariance matrix
     P_aug.fill(0.0);
@@ -313,33 +312,21 @@ void UKF::PredictSigmaPoints(double delta_t)
 
 void UKF::PredictMeanAndCovariance(){
 
-  // Vector for predicted state
-  VectorXd x = VectorXd(n_x_);
-
-  // Matrix for predicted covariance
-  MatrixXd P = MatrixXd(n_x_,n_x_);
-
-  x.fill(0.0);
+  x_.fill(0.0);
 
   for (int i = 0; i < n_sig_; i++){
-    x = x + weights_(i) * Xsig_pred_.col(i);
+    x_ = x_ + weights_(i) * Xsig_pred_.col(i);
   }
 
-  P.fill(0.0);
+  P_.fill(0.0);
 
   for (int i = 0; i < n_sig_; i++){
 
-    VectorXd x_diff = Xsig_pred_.col(i) - x;
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
 
     x_diff(3) = SNormalizeAngle(x_diff(3));
-    P = P + weights_(i) * x_diff * x_diff.transpose() ;
+    P_ = P_ + weights_(i) * x_diff * x_diff.transpose() ;
   }
-
-  x_ = x;
-  P_ = P;
-  //cout<<x<<endl;
-  //cout<<"......"<<endl;
-  //cout<<P<< endl;
 }
 /**
  * Predicts sigma points, the state, and the state covariance matrix.
@@ -378,15 +365,14 @@ void UKF::PredictRadarMeasurement(){
     double v2 = sin(yaw) * v;
 
     // Measurement model
-    if (fabs(p_x) > p_x_min_ || fabs(p_y) > p_y_min_){
-      Zsig_(0,i) = sqrt(p_x*p_x + p_y*p_y);
-      Zsig_(1,i) = atan2(p_y, p_x);
-      Zsig_(2,i) = (p_x*v1+p_y*v2) / sqrt(p_x*p_x + p_y*p_y);
-    } else{
-      Zsig_(0,i) = 0;
-      Zsig_(1,i) = 0;
-      Zsig_(2,i) = 0;
-    }
+    // rho
+    Zsig_(0, i) = sqrt(p_x * p_x + p_y * p_y);
+
+    // phi
+    Zsig_(1, i) = atan2(p_y, p_x);
+
+    // rho_dot
+    Zsig_(2, i) = (Zsig_(0, i) < 0.0001 ? (p_x * v1 + p_y * v2) / 0.0001 : (p_x * v1 + p_y * v2) / Zsig_(0, i));
 
   }
 
@@ -470,11 +456,12 @@ void UKF::UpdateState(int n_z, bool is_radar){
 
     VectorXd z_diff = Zsig_.col(i) - z_pred_;
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    x_diff(3) = SNormalizeAngle(x_diff(3));
 
     if (is_radar == true){
         z_diff(1) = SNormalizeAngle(z_diff(1));
-        x_diff(3) = SNormalizeAngle(x_diff(3));
     }
+
 
     Tc = Tc + weights_(i) * x_diff  * z_diff.transpose();
   }
