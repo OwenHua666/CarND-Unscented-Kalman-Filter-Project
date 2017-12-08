@@ -4,6 +4,8 @@
 #include <math.h>
 #include "ukf.h"
 #include "tools.h"
+#include "Eigen/Dense"
+#include <iostream>
 
 using namespace std;
 
@@ -128,7 +130,7 @@ int main()
     	  estimations.push_back(estimate);
 
     	  VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
-
+          //cout<<p_x<<p_y<<v1<<v2<<"xxxxx"<<endl;
           json msgJson;
           msgJson["estimate_x"] = p_x;
           msgJson["estimate_y"] = p_y;
@@ -136,6 +138,17 @@ int main()
           msgJson["rmse_y"] =  RMSE(1);
           msgJson["rmse_vx"] = RMSE(2);
           msgJson["rmse_vy"] = RMSE(3);
+
+          VectorXd RMSE_NIS = VectorXd(5);
+          RMSE_NIS.head(4) = RMSE;
+          RMSE_NIS(4) = ukf.NIS;
+          ukf.RMSE_NIS_Collect.conservativeResize(ukf.RMSE_NIS_Collect.rows()+1, Eigen::NoChange);
+          //cout<<"RMSE_Collect row size is: "<<
+          ukf.RMSE_NIS_Collect.row((ukf.RMSE_NIS_Collect.rows()-1)) = RMSE_NIS;
+          // save the RMSE Collect to a csv file
+          ofstream out("RMSE_NIS_Collect.csv");
+          out << ukf.RMSE_NIS_Collect;
+
 
           auto msg = "42[\"estimate_marker\"," + msgJson.dump() + "]";
           // std::cout << msg << std::endl;

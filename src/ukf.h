@@ -102,11 +102,8 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
-  ///* The current NIS for radar
-  double NIS_radar_;
-
-  ///* The current NIS for LIDAR
-  double NIS_lidar_;
+  ///* The NIS
+  double NIS;
 
   ///* previous timestamp
   long previous_timestamp_;
@@ -119,6 +116,8 @@ public:
 //  double p_y_min_;
   double p_x_min_;
   double p_y_min_;
+
+  Eigen::MatrixXd RMSE_NIS_Collect;
 
   /**
    * Constructor
@@ -191,5 +190,7 @@ public:
   /**
   * UKF Update
   */
+
+  void UpdateMeasurement(MeasurementPackage meas_package);
 };
 #endif /* UKF_H */
