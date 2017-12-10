@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 dataset_list = [] 
 count = 0
-with open('/home/ftb/Self-Driving/carnd-term2/CarND-Extended-Kalman-Filter-Project/build/RMSE_Collect.csv') as csvfile:
+with open('/home/ftb/Self-Driving/carnd-term2/CarND-Unscented-Kalman-Filter-Project/build/RMSE_NIS_Collect.csv') as csvfile:
 	datareader = csv.reader(csvfile, delimiter=' ')
 	for row in datareader:
 		count += 1
@@ -19,8 +19,50 @@ for row in range(0, count-1): # The first row is fake data.
 	for col in range(4):
 		dataset_array[row, col] = dataset_list[row+1][col]
 
+
+Laser_Data_num = int(count / 2)
+print(Laser_Data_num)
+Laser_Data = np.empty((Laser_Data_num, 1))
+Radar_Data_num = int(count / 2 -1)
+Radar_Data = np.empty((Radar_Data_num, 1))
+
+Radar_row = 0
+Lidar_row = 0
+
+for row in range(1, count):
+	if row % 2 == 0:
+		Radar_Data[Radar_row,0] = dataset_list[row][4]
+		Radar_row += 1
+	else:
+		Laser_Data[Lidar_row,0] = dataset_list[row][4]
+		Lidar_row += 1
+
+x_array = np.arange(Radar_Data_num)
+plt.figure()
+ErrorBound = np.ones(Radar_Data_num) * 7.815
+plt.plot(x_array, Radar_Data, 'b', x_array, ErrorBound, 'r')
+plt.xlabel("measurement_steps")
+plt.ylabel("Radar_NIS")
+plt.axis([0,250,0,80])
+plt.legend(("NIS of Radar Measurement","NIS(3) Upper Bound"))
+plt.title("NIS of the Prediction from Radar Measurement")
+plt.grid(True)
+plt.show()
+
+x_array = np.arange(Laser_Data_num)
+plt.figure()
+ErrorBound = np.ones(Laser_Data_num) * 5.991
+plt.plot(x_array, Laser_Data, 'b', x_array, ErrorBound, 'r')
+plt.xlabel("measurement_steps")
+plt.ylabel("Laser_NIS")
+plt.axis([0,250,0,80])
+plt.legend(("NIS of Laser Measurement","NIS(3) Upper Bound"))
+plt.title("NIS of the Prediction from Laser Measurement")
+plt.grid(True)
+plt.show()
+
 x_array = np.arange(count-1)
-accuracy = [0.11, 0.11, 0.52, 0.52]
+accuracy = [0.09, 0.10, 0.40, 0.30]
 plt.figure()
 ErrorBound = np.ones(count-1) * accuracy[0]
 plt.plot(x_array, dataset_array[:,0], 'b', x_array, ErrorBound, 'r')
