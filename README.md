@@ -99,5 +99,5 @@ for instructions and the project rubric.
 ![alt text][image7]
 
 ## Discussion
-The RMSE of px, py, vx, and vy are all under the errorbounds [.09, .10, .40, .30]. The NIS plots shows both Laser and Radar predictions have resaonable covariance matrix (uncertainty).  
+The RMSE of px, py, vx, and vy are all under the errorbounds [.09, .10, .40, .30]. The NIS plots shows both Laser and Radar predictions have resaonable covariance matrix (uncertainty). If one of the sensor is switched off, the error rate (rmse) for all the metrics increased. This is because of the less frequent measurement and lack of informaton gained from the switched-off sensor.
 
